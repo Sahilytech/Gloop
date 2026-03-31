@@ -371,7 +371,8 @@ const game = {
         this.hue += 1;
         
         // FIX: Suavizado y Clamping para evitar que la Gloop desaparezca si el vx/vy es infinito
-        let ease = (this.mode === 'zen') ? 0.08 : (this.mode === 'void' ? 0.25 : 0.15);
+        // Aumentar la sensibilidad: mayores valores hacen que la Gloop siga el dedo más rápido
+        let ease = (this.mode === 'zen') ? 0.16 : (this.mode === 'void' ? 0.45 : 0.35);
         
         let dx = this.player.tx - this.player.x;
         let dy = this.player.ty - this.player.y;
