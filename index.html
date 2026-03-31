@@ -93,19 +93,19 @@
         input[type=range]::-moz-range-thumb { height: 24px; width: 24px; border-radius: 50%; background: var(--p); border: 3px solid var(--card); box-shadow: 0 2px 6px var(--p-dark); }
 
         /* Shop Corregida */
-        /* Forzar tamaño fijo del menú de tienda (agrandado) */
-        #scr-shop .shop-container { width: 1000px; height: 600px; max-width: none; max-height: none; overflow: auto; -webkit-overflow-scrolling: touch; padding: 14px; margin-bottom: 15px; border-radius: 20px; background: var(--shadow); scrollbar-width: none; touch-action: auto; }
-        /* Más columnas para aprovechar 1000px */
-        #scr-shop .shop-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+        /* Shop: tamaño reducido, scroll vertical y centrado */
+        #scr-shop .shop-container { width: 360px; height: 480px; max-width: 95vw; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; padding: 12px; margin: 12px auto; border-radius: 16px; background: var(--shadow); scrollbar-width: thin; touch-action: pan-y; }
+        /* Grid vertical (una columna por defecto) */
+        #scr-shop .shop-grid { display: grid; grid-template-columns: repeat(1, 1fr); gap: 12px; }
 
-        /* Responsive: escalar tienda en pantallas pequeñas */
-        @media (max-width: 1024px) {
-            #scr-shop .shop-container { width: 90vw; height: 65vh; }
-            #scr-shop .shop-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        /* Responsive: más columnas en pantallas más anchas */
+        @media (min-width: 600px) {
+            #scr-shop .shop-container { width: 540px; height: 520px; }
+            #scr-shop .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
         }
-        @media (max-width: 420px) {
-            #scr-shop .shop-container { width: 95vw; height: 60vh; }
-            #scr-shop .shop-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        @media (min-width: 900px) {
+            #scr-shop .shop-container { width: 720px; height: 560px; }
+            #scr-shop .shop-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
         }
         .skin-item { background: var(--card); padding: 15px 5px; border-radius: 18px; cursor: pointer; border: 4px solid transparent; text-align: center; transition: transform 240ms cubic-bezier(.2,.9,.2,1), box-shadow 240ms, opacity 200ms; will-change: transform, opacity, box-shadow; }
         .skin-item.selected { border-color: var(--p); transform: scale(1.05); box-shadow: 0 0 15px var(--p); }
@@ -503,40 +503,28 @@ const ui = {
     renderShop() {
         document.getElementById('shop-stars').innerText = game.stars;
         const grid = document.getElementById('shop-grid'); grid.innerHTML = '';
-        // Enable swipe-to-scroll on the shop container
+        // Enable vertical touch/mouse drag scrolling on the shop container
         const shopContainer = document.querySelector('#scr-shop .shop-container');
-        // Remove previous handlers if any
         if (shopContainer._swipeCleanup) shopContainer._swipeCleanup();
-        (function enableSwipeScrolling(container) {
-            let startX = 0, startY = 0, startScrollLeft = 0, isTouching = false;
-            const onStart = (e) => {
-                const p = e.touches ? e.touches[0] : e;
-                startX = p.clientX; startY = p.clientY; startScrollLeft = container.scrollLeft; isTouching = true;
-            };
-            const onMove = (e) => {
-                if (!isTouching) return;
-                const p = e.touches ? e.touches[0] : e;
-                const dx = p.clientX - startX;
-                const dy = p.clientY - startY;
-                // If horizontal movement dominates, scroll horizontally and prevent vertical page scroll
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    e.preventDefault();
-                    container.scrollLeft = startScrollLeft - dx;
-                }
-            };
-            const onEnd = () => { isTouching = false; };
-            container.addEventListener('touchstart', onStart, { passive: true });
-            container.addEventListener('touchmove', onMove, { passive: false });
-            container.addEventListener('touchend', onEnd, { passive: true });
-            // mouse support for desktop
-            container.addEventListener('mousedown', (e) => { startX = e.clientX; startY = e.clientY; startScrollLeft = container.scrollLeft; isTouching = true; e.preventDefault(); });
-            container.addEventListener('mousemove', (e) => { if(!isTouching) return; const dx = e.clientX - startX; const dy = e.clientY - startY; if (Math.abs(dx) > Math.abs(dy)) { container.scrollLeft = startScrollLeft - dx; } });
-            container.addEventListener('mouseup', () => { isTouching = false; });
-            // provide cleanup to avoid duplicate bindings
+        (function enableVerticalDrag(container) {
+            container.style.overflowY = 'auto';
+            container.style.overflowX = 'hidden';
+            container.style.touchAction = 'pan-y';
+            let isDown = false, startY = 0, startScrollTop = 0;
+            const onMouseDown = (e) => { isDown = true; startY = e.clientY; startScrollTop = container.scrollTop; e.preventDefault(); };
+            const onMouseMove = (e) => { if(!isDown) return; const dy = e.clientY - startY; container.scrollTop = startScrollTop - dy; };
+            const onMouseUp = () => { isDown = false; };
+            container.addEventListener('mousedown', onMouseDown);
+            window.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('mouseup', onMouseUp);
+            // Touch: rely on native vertical scrolling (passive listeners)
+            const onTouchStart = () => {};
+            container.addEventListener('touchstart', onTouchStart, { passive: true });
             container._swipeCleanup = () => {
-                container.removeEventListener('touchstart', onStart);
-                container.removeEventListener('touchmove', onMove);
-                container.removeEventListener('touchend', onEnd);
+                container.removeEventListener('mousedown', onMouseDown);
+                window.removeEventListener('mousemove', onMouseMove);
+                window.removeEventListener('mouseup', onMouseUp);
+                container.removeEventListener('touchstart', onTouchStart);
             };
         })(shopContainer);
         SKINS.forEach((s, idx) => {
