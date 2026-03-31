@@ -88,6 +88,9 @@
             background: var(--p); cursor: pointer; margin-top: -7px; 
             border: 3px solid var(--card); box-shadow: 0 2px 6px var(--p-dark);
         }
+        /* Firefox slider styles */
+        input[type=range]::-moz-range-track { height: 10px; background: var(--shadow); border-radius: 10px; }
+        input[type=range]::-moz-range-thumb { height: 24px; width: 24px; border-radius: 50%; background: var(--p); border: 3px solid var(--card); box-shadow: 0 2px 6px var(--p-dark); }
 
         /* Shop Corregida */
         .shop-container { width: 100%; max-width: 380px; height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px; margin-bottom: 15px; border-radius: 20px; background: var(--shadow); scrollbar-width: none; touch-action: pan-y; }
@@ -240,6 +243,8 @@ const game = {
             this.ctx = this.canvas.getContext('2d');
         }
         audio.init();
+        // start with canvas non-interactive until game starts
+        if (this.canvas) this.canvas.style.pointerEvents = 'none';
         this.resize();
         window.addEventListener('resize', () => this.resize());
         this.setupInput();
@@ -272,13 +277,22 @@ const game = {
     },
 
     setupInput() {
+        // Throttle touch/mouse moves to animation frames to improve perf
+        let pending = false;
+        let lastX = 0, lastY = 0;
         const handleMove = (e) => {
-            if(!this.on) return;
             const p = e.touches ? e.touches[0] : e;
-            // FIX: Validar que las coordenadas sean números reales y dentro de un rango lógico
-            if(!isNaN(p.clientX) && !isNaN(p.clientY)) {
-                this.player.tx = p.clientX;
-                this.player.ty = p.clientY;
+            if(isNaN(p.clientX) || isNaN(p.clientY)) return;
+            lastX = p.clientX; lastY = p.clientY;
+            if (!pending) {
+                pending = true;
+                requestAnimationFrame(() => {
+                    if(this.on) {
+                        this.player.tx = lastX;
+                        this.player.ty = lastY;
+                    }
+                    pending = false;
+                });
             }
         };
         window.addEventListener('mousemove', handleMove);
@@ -294,6 +308,8 @@ const game = {
         this.player.tx = this.player.x; this.player.ty = this.player.y;
         this.player.r = (m === 'giant') ? 50 : 28;
         document.getElementById('hud').style.display = 'flex';
+        // enable canvas interaction when game is running
+        if (this.canvas) this.canvas.style.pointerEvents = 'auto';
         ui.go('none');
     },
 
@@ -302,6 +318,7 @@ const game = {
         GamePix.interstitialAd().then(() => { 
             audio.resume(); ui.go('scr-main'); 
             document.getElementById('hud').style.display = 'none'; 
+            if (this.canvas) this.canvas.style.pointerEvents = 'none';
         });
     },
 
@@ -357,8 +374,17 @@ const game = {
             } else if(e.y > innerHeight + 100) this.enemies.splice(i,1);
         }
         this.score += (this.mode === 'void' ? 2 : 1);
-        document.getElementById('val-score').innerText = Math.floor(this.score);
-        document.getElementById('val-stars').innerText = this.stars;
+        // Update displayed score/stars only when changed to reduce DOM thrash
+        if (!this._lastDisplayed) this._lastDisplayed = { score: -1, stars: -1 };
+        const displayScore = Math.floor(this.score);
+        if (displayScore !== this._lastDisplayed.score) {
+            this._lastDisplayed.score = displayScore;
+            document.getElementById('val-score').innerText = displayScore;
+        }
+        if (this.stars !== this._lastDisplayed.stars) {
+            this._lastDisplayed.stars = this.stars;
+            document.getElementById('val-stars').innerText = this.stars;
+        }
     },
 
     draw() {
