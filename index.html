@@ -93,8 +93,10 @@
         input[type=range]::-moz-range-thumb { height: 24px; width: 24px; border-radius: 50%; background: var(--p); border: 3px solid var(--card); box-shadow: 0 2px 6px var(--p-dark); }
 
         /* Shop Corregida */
-        .shop-container { width: 100%; max-width: 380px; height: 40vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px; margin-bottom: 15px; border-radius: 20px; background: var(--shadow); scrollbar-width: none; touch-action: pan-y; }
-        .shop-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        /* Forzar tamaño fijo del menú de tienda */
+        #scr-shop .shop-container { width: 800px; height: 450px; max-width: none; max-height: none; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 10px; margin-bottom: 15px; border-radius: 20px; background: var(--shadow); scrollbar-width: none; touch-action: pan-y; }
+        /* Más columnas para aprovechar 800px */
+        #scr-shop .shop-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
         .skin-item { background: var(--card); padding: 15px 5px; border-radius: 18px; cursor: pointer; border: 4px solid transparent; text-align: center; transition: transform 240ms cubic-bezier(.2,.9,.2,1), box-shadow 240ms, opacity 200ms; will-change: transform, opacity, box-shadow; }
         .skin-item.selected { border-color: var(--p); transform: scale(1.05); box-shadow: 0 0 15px var(--p); }
         /* Animación de entrada para items */
